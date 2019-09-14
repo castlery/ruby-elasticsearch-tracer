@@ -8,8 +8,7 @@ module Elasticsearch
         @active_span = active_span
         @wrapped = transport
       end
-
-      def perform_request(method, path, params={}, body=nil, headers=nil)
+      def perform_request(method, path, params={}, body=nil)
         tags = {
           'component' => 'elasticsearch-ruby',
           'span.kind' => 'client',
@@ -20,12 +19,11 @@ module Elasticsearch
         }
 
         tags['db.statement'] = MultiJson.dump(body) unless Thread.current[self.object_id.to_s]
-
         span = tracer.start_span(method,
                                  child_of: active_span.respond_to?(:call) ? active_span.call : active_span,
                                  tags: tags)
 
-        response = @wrapped.perform_request(method, path, params, body, headers)
+        response = @wrapped.perform_request(method, path, params, body)
         span.set_tag('http.status_code', response.status)
 
         response
